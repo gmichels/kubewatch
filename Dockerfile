@@ -2,8 +2,8 @@
 # Set the base image for subsequent instructions:
 #------------------------------------------------------------------------------
 
-FROM alpine:3.5
-MAINTAINER Marc Villacorta Morera <marc.villacorta@gmail.com>
+FROM alpine
+MAINTAINER Gustavo Michels <gustavo.michels@gmail.com>
 
 #------------------------------------------------------------------------------
 # Environment variables:
@@ -16,7 +16,7 @@ ENV GOPATH="/go"
 #------------------------------------------------------------------------------
 
 RUN apk add -U --no-cache -t dev git go musl-dev \
-    && go get github.com/softonic/kubewatch \
+    && go get github.com/gmichels/kubewatch \
     && cp ${GOPATH}/bin/kubewatch /usr/local/bin \
     && apk del --purge dev && rm -rf /tmp/* /go
 

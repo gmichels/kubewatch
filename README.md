@@ -2,23 +2,27 @@
 
 [![Version Widget]][Version] [![License Widget]][License] [![GoReportCard Widget]][GoReportCard] [![Travis Widget]][Travis] [![DockerHub Widget]][DockerHub]
 
-[Version]: https://github.com/softonic/kubewatch/releases
-[Version Widget]: https://img.shields.io/github/release/softonic/kubewatch.svg?maxAge=60
+[Version]: https://github.com/gmichels/kubewatch/releases
+[Version Widget]: https://img.shields.io/github/release/gmichels/kubewatch.svg?maxAge=60
 [License]: http://www.apache.org/licenses/LICENSE-2.0.txt
 [License Widget]: https://img.shields.io/badge/license-APACHE2-1eb0fc.svg
-[GoReportCard]: https://goreportcard.com/report/softonic/kubewatch
-[GoReportCard Widget]: https://goreportcard.com/badge/softonic/kubewatch
-[Travis]: https://travis-ci.org/softonic/kubewatch
-[Travis Widget]: https://travis-ci.org/softonic/kubewatch.svg?branch=master
-[DockerHub]: https://hub.docker.com/r/softonic/kubewatch
-[DockerHub Widget]: https://img.shields.io/docker/pulls/softonic/kubewatch.svg
+[GoReportCard]: https://goreportcard.com/report/gmichels/kubewatch
+[GoReportCard Widget]: https://goreportcard.com/badge/gmichels/kubewatch
+[Travis]: https://travis-ci.org/gmichels/kubewatch
+[Travis Widget]: https://travis-ci.org/gmichels/kubewatch.svg?branch=master
+[DockerHub]: https://hub.docker.com/r/gmichels/kubewatch
+[DockerHub Widget]: https://img.shields.io/docker/pulls/gmichels/kubewatch.svg
 
-Kubernetes API event watcher.
+# Overview
+
+Kubernetes API event watcher with output to Splunk HEC.
+
+This is a fork of [softonic/kubewatch](https://github.com/softonic/kubewatch "softonic/kubewatch") adding support to output the data to Splunk via HTTP Event Collector (HEC).
 
 ##### Install
 
 ```
-go get -u github.com/softonic/kubewatch
+go get -u github.com/gmichels/kubewatch
 ```
 
 ##### Shell completion
@@ -26,6 +30,21 @@ go get -u github.com/softonic/kubewatch
 ```
 eval "$(kubewatch --completion-script-${0#-})"
 ```
+
+##### Splunk Configuration
+Proper functionality depends on the existence of the following environment variables:
+
+- `SPLUNK_HEC_HOST`: the FQDN of the Splunk HTTP Event Collector
+- `SPLUNK_HEC_PORT`: the port of the Splunk HTTP Event Collector
+- `SPLUNK_HEC_TOKEN`: the token for the Splunk HTTP Event Collector
+- `SPLUNK_HEC_PORT`: the port of the Splunk HTTP Event Collector
+
+The below environment variables are optional:
+
+- `SPLUNK_HOST`: the `host` field for the events
+- `SPLUNK_SOURCE`: the `source` field for the events
+- `SPLUNK_SOURCETYPE`: the `sourcetype` field for the events
+- `SPLUNK_INDEX`: the `index` field for the events
 
 ##### Help
 
@@ -48,6 +67,8 @@ Args:
 
 ##### Out-of-cluster examples:
 
+Make sure the required environment variables are set.
+
 Watch for `pods` and `events` in all `namespaces`:
 ```
 kubewatch pods events | jq '.'
@@ -57,7 +78,7 @@ Same thing with docker:
 ```
 docker run -it --rm \
 -v ~/.kube/config:/root/.kube/config \
-softonic/kubewatch pods events | jq '.'
+gmichels/kubewatch pods events | jq '.'
 ```
 
 Watch for `services` events in namespace `foo`:
@@ -69,19 +90,9 @@ Same thing with docker:
 ```
 docker run -it --rm \
 -v ~/.kube/config:/root/.kube/config \
-softonic/kubewatch --namespace foo services | jq '.'
+gmichels/kubewatch --namespace foo services | jq '.'
 ```
 
 ##### In-cluster examples:
 
-Run `kubewatch` in the `monitoring` namespace and watch for `pods` in all namespaces:
-```
-kubectl --namespace monitoring run kubewatch --image softonic/kubewatch -- pods
-```
-
-Run `kubewatch` in the `monitoring` namespace and watch for `pods`, `deployments` and `events` objects in all namespaces. Also flatten the `json` output:
-```
-kubectl --namespace monitoring \
-run kubewatch --image softonic/kubewatch \
--- --flatten pods deployments events
-```
+See the examples in [k8s-manifests](k8s-manifests "k8s-manifests") folder for a Kubernetes deployment.

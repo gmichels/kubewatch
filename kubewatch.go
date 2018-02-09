@@ -28,6 +28,11 @@ import (
 	// Community:
 	log "github.com/Sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
+
+	// Splunk HEC:
+	"crypto/tls"
+	"net/http"
+	"github.com/fuyufjh/splunk-hec-go"
 )
 
 //-----------------------------------------------------------------------------
@@ -37,7 +42,7 @@ import (
 var (
 
 	// Root level command:
-	app = kingpin.New("kubewatch", "Watches Kubernetes resources via its API.")
+	app = kingpin.New("kubewatch", "Watches Kubernetes resources via its API and outputs to Splunk HEC.")
 
 	// Resources:
 	resources = []string{
@@ -57,6 +62,17 @@ var (
 
 	flgFlatten = app.Flag("flatten",
 		"Whether to produce flatten JSON output or not.").Bool()
+
+	// Create the Splunk HEC client:
+	splunkClient = hec.NewClient(
+		"https://" + os.Getenv("SPLUNK_HEC_HOST") + ":" + os.Getenv("SPLUNK_HEC_PORT"),
+		os.Getenv("SPLUNK_HEC_TOKEN"),
+	)
+
+	splunkHost = os.Getenv("SPLUNK_HOST")
+	splunkIndex = os.Getenv("SPLUNK_INDEX")
+	splunkSource = os.Getenv("SPLUNK_SOURCE")
+	splunkSourceType = os.Getenv("SPLUNK_SOURCETYPE")
 
 	// Arguments:
 	argResources = app.Arg("resources",
@@ -112,7 +128,7 @@ var resourceObject = map[string]verObj{
 func init() {
 
 	// Customize kingpin:
-	app.Version("v0.3.2").Author("Marc Villacorta Morera")
+	app.Version("v0.4.0").Author("Gustavo Michels, Marc Villacorta Morera")
 	app.UsageTemplate(usageTemplate)
 	app.HelpFlag.Short('h')
 
@@ -120,6 +136,12 @@ func init() {
 	log.SetFormatter(&log.TextFormatter{ForceColors: true})
 	log.SetOutput(os.Stderr)
 	log.SetLevel(log.InfoLevel)
+
+	// Configure Splunk HTTP client
+	splunkClient.SetHTTPClient(&http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}})
+
 }
 
 //-----------------------------------------------------------------------------
@@ -232,6 +254,17 @@ func printEvent(obj interface{}) {
 
 	// Print to stdout:
 	fmt.Printf("%s\n", jsn)
+
+	// Send to Splunk HEC
+	event := hec.NewEvent(string(jsn))
+	event.SetHost(splunkHost)
+	event.SetIndex(splunkIndex)
+	event.SetSource(splunkSource)
+	event.SetSourceType(splunkSourceType)
+	err = splunkClient.WriteEvent(event)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 //-----------------------------------------------------------------------------

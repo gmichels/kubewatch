@@ -1,0 +1,27 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: kubewatch
+  name: kubewatch
+  namespace: monitoring
+spec:
+  template:
+    metadata:
+      labels:
+        app: kubewatch
+    spec:
+      containers:
+      - name: kubewatch
+        image: gmichels/kubewatch
+        imagePullPolicy: Always
+        args:
+        - --flatten
+        - pods
+        - deployments
+        - events
+        envFrom:
+        - configMapRef:
+            name: splunk-hec-config
+        - secretRef:
+            name: splunk-hec-token

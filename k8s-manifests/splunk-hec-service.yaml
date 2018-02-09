@@ -1,0 +1,10 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: splunk-hec-service
+  namespace: monitoring
+  labels:
+    app: kubewatch
+spec:
+  type: ExternalName
+  externalName: <FQDN for HEC host>
