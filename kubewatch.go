@@ -31,8 +31,8 @@ import (
 
 	// Splunk HEC:
 	"crypto/tls"
-	"net/http"
 	"github.com/fuyufjh/splunk-hec-go"
+	"net/http"
 )
 
 //-----------------------------------------------------------------------------
@@ -65,13 +65,13 @@ var (
 
 	// Create the Splunk HEC client:
 	splunkClient = hec.NewClient(
-		"https://" + os.Getenv("SPLUNK_HEC_HOST") + ":" + os.Getenv("SPLUNK_HEC_PORT"),
+		"https://"+os.Getenv("SPLUNK_HEC_HOST")+":"+os.Getenv("SPLUNK_HEC_PORT"),
 		os.Getenv("SPLUNK_HEC_TOKEN"),
 	)
 
-	splunkHost = os.Getenv("SPLUNK_HOST")
-	splunkIndex = os.Getenv("SPLUNK_INDEX")
-	splunkSource = os.Getenv("SPLUNK_SOURCE")
+	splunkHost       = os.Getenv("SPLUNK_HOST")
+	splunkIndex      = os.Getenv("SPLUNK_INDEX")
+	splunkSource     = os.Getenv("SPLUNK_SOURCE")
 	splunkSourceType = os.Getenv("SPLUNK_SOURCETYPE")
 
 	// Arguments:
@@ -128,7 +128,7 @@ var resourceObject = map[string]verObj{
 func init() {
 
 	// Customize kingpin:
-	app.Version("v0.4.0").Author("Gustavo Michels, Marc Villacorta Morera")
+	app.Version("v0.4.1").Author("Gustavo Michels, Marc Villacorta Morera")
 	app.UsageTemplate(usageTemplate)
 	app.HelpFlag.Short('h')
 
@@ -225,6 +225,7 @@ func printEvent(obj interface{}) {
 	// Variables:
 	var jsn []byte
 	var err error
+	var t time.Time
 
 	// Marshal obj into JSON:
 	if jsn, err = json.Marshal(obj); err != nil {
@@ -232,15 +233,22 @@ func printEvent(obj interface{}) {
 		return
 	}
 
+	// Unmarshal JSON into dat:
+	dat := strIfce{}
+	if err = json.Unmarshal(jsn, &dat); err != nil {
+		log.Error("Ops! Cannot unmarshal JSON")
+		return
+	}
+
+	// Set event time
+	meta := dat["metadata"].(map[string]interface{})
+	layout := "2006-01-02T15:04:05Z"
+	if t, err = time.Parse(layout, meta["creationTimestamp"].(string)); err != nil {
+		log.Error("Ops! Cannot parse timestamp")
+		return
+	}
+
 	if *flgFlatten {
-
-		// Unmarshal JSON into dat:
-		dat := strIfce{}
-		if err = json.Unmarshal(jsn, &dat); err != nil {
-			log.Error("Ops! Cannot unmarshal JSON")
-			return
-		}
-
 		// Flatten dat into r:
 		r := strIfce{}
 		flatten(r, "kubewatch", reflect.ValueOf(dat))
@@ -261,6 +269,7 @@ func printEvent(obj interface{}) {
 	event.SetIndex(splunkIndex)
 	event.SetSource(splunkSource)
 	event.SetSourceType(splunkSourceType)
+	event.SetTime(t)
 	err = splunkClient.WriteEvent(event)
 	if err != nil {
 		log.Fatal(err)
